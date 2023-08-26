@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桥梁病害查询系统</title>
+    <style>
+        /* 新增的CSS样式用于调整布局 */
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        /* 上部区域高度占整个页面的30% */
+        #topSection {
+            height: 30vh;
+            width: 100%;
+            background-color: #e3f2fd;
+            padding: 20px 0;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        /* 下部区域宽度占100%，高度占70% */
+        #bottomSection {
+            display: none; /* 初始隐藏 */
+            width: 100%;
+            height: 70%;
+            display: flex;
+            justify-content: space-evenly;
+            align-items: flex-start;
+        }
+
+        /* 左部区域宽度占20%，高度占100% */
+        #leftColumn {
+            width: 20%;
+            height: 100%;
+            background-color: #f1f8e9;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow: auto;
+        }
+
+        /* 右部区域宽度占80%，高度占100% */
+        #rightColumn {
+            width: 80%;
+            height: 100%;
+            background-color: #ffcdd2;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow: auto;
+        }
+
+        /* 添加标题样式，水平居中 */
+        #pageTitle {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        /* 添加选项框和按钮之间的间距 */
+        label,
+        select,
+        button {
+            margin: 5px;
+        }
+
+        /* 调整按钮样式 */
+        button {
+            padding: 5px 10px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: inline-block;
+            height: auto;
+        }
+
+        button:hover {
+            background-color: #1976D2;
+        }
+
+        /* 将四个选择框水平排列 */
+        .horizontal-flex {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            width: 90%;
+        }
+
+        /* 调整选择框宽度 */
+        select {
+            width: 15%;
+        }
+
+        /* 将按钮竖向排列 */
+        .vertical-flex {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        /* 登录页面样式 */
+        #loginPage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100%;
+        }
+
+        #loginForm {
+            padding: 20px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        #loginInput {
+            margin: 10px;
+            padding: 5px;
+        }
+
+        #loginButton {
+            padding: 5px 10px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #loginButton:hover {
+            background-color: #1976D2;
+        }
+
+        /* 登录成功提示样式 */
+        #loginSuccess {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录页面 -->
+    <div id="loginPage">
+        <div id="loginForm">
+            <h2>登录</h2>
+            <input type="password" id="loginInput" placeholder="请输入密码">
+            <button id="loginButton">登录</button>
+        </div>
+        <div id="loginSuccess"></div>
+    </div>
+
+    <!-- 主页面 -->
+    <div id="topSection">
+        <h1 id="pageTitle">病害成因分析与维修建议</h1>
+        <div class="horizontal-flex">
+            <label for="bridgeType">桥梁类型：</label>
+            <select id="bridgeType">
+                <option value="空心板">空心板</option>
+                <option value="实心板">实心板</option>
+                <option value="拱桥">拱桥</option>
+            </select>
+            <label for="structureType">结构类型：</label>
+            <select id="structureType"></select>
+            <label for="component">部件：</label>
+            <select id="component"></select>
+            <label for="damageType">病害类型：</label>
+            <select id="damageType" multiple style="height: 135px;"></select>
+            <div class="vertical-flex">
+                <button id="addDamage">添加病害</button>
+                <button id="showResults">显示结果</button>
+                <button id="clearSelection">清空选择</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bottomSection">
+        <div id="leftColumn">
+            <h2>已选病害列表：</h2>
+            <ul id="selectedDamages"></ul>
+        </div>
+
+        <div id="rightColumn">
+            <h2>病害成因分析和维修建议</h2>
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        // 密码设置
+        const password = "zhywb"; // 设置您的密码
+
+        // 登录页面元素
+        const loginPage = document.getElementById('loginPage');
+        const loginInput = document.getElementById('loginInput');
+        const loginButton = document.getElementById('loginButton');
+        const loginSuccess = document.getElementById('loginSuccess');
+
+        // 主页面元素
+        const topSection = document.getElementById('topSection');
+        const bottomSection = document.getElementById('bottomSection');
+
+        // 监听登录按钮点击事件
+        loginButton.addEventListener('click', () => {
+            const enteredPassword = loginInput.value;
+            if (enteredPassword === password) {
+                // 登录成功，显示主页面
+                loginPage.style.display = 'none';
+                topSection.style.display = 'block';
+                bottomSection.style.display = 'flex';
+                loginSuccess.textContent = '登录成功！';
+            } else {
+                // 登录失败，显示错误消息
+                loginSuccess.textContent = '登录失败，请检查密码。';
+            }
+        });
+
+        // 原始代码部分...
+        // ...
+
+        // 其余的JavaScript代码保持不变
+        // ...
+    </script>
+</body>
+</html>
+
+
+    <script>
+        const bridgeTypeSelect = document.getElementById('bridgeType');
+        const structureSelect = document.getElementById('structureType');
+        const componentSelect = document.getElementById('component');
+        const damageSelect = document.getElementById('damageType');
+        const addDamageButton = document.getElementById('addDamage');
+        const clearSelectionButton = document.getElementById('clearSelection');
+        const selectedDamagesList = document.getElementById('selectedDamages');
+        const showResultsButton = document.getElementById('showResults');
+        const resultDiv = document.getElementById('results');
+
+        // 数据结构，包括不同桥梁类型、结构类型、部件和病害类型的信息
+        const damageInfo = {
+            '空心板': {
+                '上部结构': {
+                    '部件1': {
+                        '病害类型1': {
+                            '成因分析': '成因分析1',
+                            '维修建议': '维修建议1'
+                        },
+                        '病害类型2': {
+                            '成因分析': '成因分析2',
+                            '维修建议': '维修建议2'
+                        }
+                    },
+                    '部件2': {
+                        '病害类型1': {
+                            '成因分析': '成因分析1',
+                            '维修建议': '维修建议1'
+                        },
+                        '病害类型2': {
+                            '成因分析': '成因分析2',
+                            '维修建议': '维修建议2'
+                        }
+                    }
+                },
+                '下部结构': {
+                    '部件1': {
+                        '病害类型1': {
+                            '成因分析': '成因分析1',
+                            '维修建议': '维修建议1'
+                        },
+                        '病害类型2': {
+                            '成因分析': '成因分析2',
+                            '维修建议': '维修建议2'
+                        }
+                    },
+                    '部件2': {
+                        '病害类型1': {
+                            '成因分析': '成因分析1',
+                            '维修建议': '维修建议1'
+                        },
+                        '病害类型2': {
+                            '成因分析': '成因分析2',
+                            '维修建议': '维修建议2'
+                        }
+                    }
+                }
+            },
+            '实心板': {
+                '上部结构': {
+                    '部件1': {
+                        '病害类型1': {
+                            '成因分析': '成因分析1',
+                            '维修建议': '维修建议1'
+                        },
+                        '病害类型2': {
+                            '成因分析': '成因分析2',
+                            '维修建议': '维修建议2'
+                        }
+                    },
+                    '部件2': {
+                        '病害类型1': {
+                            '成因分析': '成因分析1',
+                            '维修建议': '维修建议1'
+                        },
+                        '病害类型2': {
+                            '成因分析': '成因分析2',
+                            '维修建议': '维修建议2'
+                        }
+                    }
+                },
+                '下部结构': {
+                    '部件1': {
+                        '病害类型1': {
+                            '成因分析': '成因分析1',
+                            '维修建议': '维修建议1'
+                        },
+                        '病害类型2': {
+                            '成因分析': '成因分析2',
+                            '维修建议': '维修建议2'
+                        }
+                    },
+                    '部件2': {
+                        '病害类型1': {
+                            '成因分析': '成因分析1',
+                            '维修建议': '维修建议1'
+                        },
+                        '病害类型2': {
+                            '成因分析': '成因分析1',
+                            '维修建议': '维修建议2'
+                        }
+                    }
+                }
+            },
+            '拱桥': {
+                '上部结构': {
+                    '部件1': {
+                        '病害类型1': {
+                            '成因分析': '成因分析1',
+                            '维修建议': '维修建议1'
+                        },
+                        '病害类型2': {
+                            '成因分析': '成因分析2',
+                            '维修建议': '维修建议2'
+                        }
+                    },
+                    '部件2': {
+                        '病害类型1': {
+                            '成因分析': '成因分析1',
+                            '维修建议': '维修建议1'
+                        },
+                        '病害类型2': {
+                            '成因分析': '成因分析2',
+                            '维修建议': '维修建议2'
+                        }
+                    }
+                },
+                '下部结构': {
+                    '部件1': {
+                        '病害类型1': {
+                            '成因分析': '成因分析1',
+                            '维修建议': '维修建议1'
+                        },
+                        '病害类型2': {
+                            '成因分析': '成因分析2',
+                            '维修建议': '维修建议2'
+                        }
+                    },
+                    '部件2': {
+                        '病害类型1': {
+                            '成因分析': '成因分析1',
+                            '维修建议': '维修建议1'
+                        },
+                        '病害类型2': {
+                            '成因分析': '成因分析2',
+                            '维修建议': '维修建议2'
+                        }
+                    }
+                }
+            }
+        };
+
+        // 清空已选病害列表和输出部分
+        function clearSelection() {
+            selectedDamagesList.innerHTML = '';
+            resultDiv.innerHTML = '';
+        }
+
+        // 添加病害到已选列表
+        function addDamage() {
+            const selectedDamageOptions = [...damageSelect.selectedOptions];
+
+            selectedDamageOptions.forEach(option => {
+                const damageType = option.value;
+                const bridgeType = bridgeTypeSelect.value;
+                const structureType = structureSelect.value;
+                const component = componentSelect.value;
+
+                const damageItem = document.createElement('li');
+                damageItem.textContent = damageType;
+                selectedDamagesList.appendChild(damageItem);
+            });
+        }
+
+// 显示结果
+function showResults() {
+    resultDiv.innerHTML = '';
+
+    const bridgeType = bridgeTypeSelect.value;
+    const structureType = structureSelect.value;
+    const component = componentSelect.value;
+
+    let causeText = ''; // 存储原因分析
+    let suggestionText = ''; // 存储维修建议
+
+    selectedDamagesList.querySelectorAll('li').forEach((damageItem, index, list) => {
+        const damageType = damageItem.textContent;
+        const cause = damageInfo[bridgeType][structureType][component][damageType]['成因分析'];
+        const suggestion = damageInfo[bridgeType][structureType][component][damageType]['维修建议'];
+
+        // 添加原因分析和维修建议，每一条都在新行中
+        const causeLine = `${index + 1}、${cause}${index === list.length - 1 ? '。' : '；'}`;
+        const suggestionLine = `${index + 1}、${suggestion}${index === list.length - 1 ? '。' : '；'}`;
+
+        causeText += causeLine + '<br>';
+        suggestionText += suggestionLine + '<br>';
+    });
+
+    // 创建并添加结果元素
+    const resultItem = document.createElement('div');
+    resultItem.innerHTML = `<strong>原因分析：</strong><br>${causeText}<br><strong>维修建议：</strong><br>${suggestionText}`;
+    resultDiv.appendChild(resultItem);
+}
+
+
+
+
+        // 初始化结构类型选项
+        function updateStructureOptions() {
+            const bridgeType = bridgeTypeSelect.value;
+            const structureTypes = Object.keys(damageInfo[bridgeType]);
+            populateDropdown(structureSelect, structureTypes);
+        }
+
+        // 初始化部件选项
+        function updateComponentOptions() {
+            const bridgeType = bridgeTypeSelect.value;
+            const structureType = structureSelect.value;
+            const components = Object.keys(damageInfo[bridgeType][structureType]);
+            populateDropdown(componentSelect, components);
+        }
+
+        // 初始化病害类型选项
+        function updateDamageOptions() {
+            const bridgeType = bridgeTypeSelect.value;
+            const structureType = structureSelect.value;
+            const component = componentSelect.value;
+            const damageTypes = Object.keys(damageInfo[bridgeType][structureType][component]);
+            populateDropdown(damageSelect, damageTypes);
+        }
+
+        // 辅助函数：清空下拉框选项
+        function clearDropdown(dropdown) {
+            while (dropdown.firstChild) {
+                dropdown.removeChild(dropdown.firstChild);
+            }
+        }
+
+        // 辅助函数：为下拉框填充选项
+        function populateDropdown(dropdown, options) {
+            clearDropdown(dropdown);
+            options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option;
+                optionElement.textContent = option;
+                dropdown.appendChild(optionElement);
+            });
+        }
+
+        // 监听桥梁类型选择变化事件
+        bridgeTypeSelect.addEventListener('change', () => {
+            updateStructureOptions();
+            updateComponentOptions();
+            updateDamageOptions();
+        });
+
+        // 监听结构类型选择变化事件
+        structureSelect.addEventListener('change', () => {
+            updateComponentOptions();
+            updateDamageOptions();
+        });
+
+        // 监听部件选择变化事件
+        componentSelect.addEventListener('change', updateDamageOptions);
+
+        // 初始化结构类型选项
+        updateStructureOptions();
+
+        // 初始化部件选项
+        updateComponentOptions();
+
+        // 初始化病害类型选项
+        updateDamageOptions();
+
+        // 监听添加病害按钮点击事件
+        addDamageButton.addEventListener('click', addDamage);
+
+        // 监听清空选择按钮点击事件
+        clearSelectionButton.addEventListener('click', clearSelection);
+
+        // 监听显示结果按钮点击事件
+        showResultsButton.addEventListener('click', showResults);
+    </script>
+</body>
+</html>
